@@ -2,7 +2,7 @@ function [myinitdata,newdata_filtered] = readmyexcel(filename)
 %UNTITLED2 Summary of this function goes here
 %Detailed explanation goes here
 %%%%%%read raw data%%%%%%%%%%
-filename = 'a.csv';
+%filename = 'a.csv';
 rawdata = xlsread(filename);
 [rownum, colnum] = size(rawdata);
 
