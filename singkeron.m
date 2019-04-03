@@ -2,12 +2,13 @@ clc;
 clear;
 close all
 
-filename = 'BY60M-1';
+filename = 'BY60M-2';
 stressformat = '.xlsx'; %STRESS
 strainformat = '.csv'; 
+dic_time_offset = 2.2; %in seconds
+
 
 [init1, out1] = readmyexcel(strcat(filename,strainformat)); 
-[init2, out2] = readmyexcel(strcat(filename,stressformat)); %STRESS
 
 %first plot - strain
 fps = 2.0; %change here for DIC frame per second 
@@ -16,39 +17,68 @@ fps = 2.0; %change here for DIC frame per second
 time_interval = 1/fps;
 [numrow_out1, numcol_out1] = size(out1);
 dic_time = 0:time_interval:(numrow_out1-1)*time_interval; %original value
+dic_time = dic_time - dic_time_offset;
 [n, num_dic_data] = size(dic_time);
-sampling_time = 0:1:100; %x-point at which data will be interpolated
+sampling_time = 0:0.1:100; %x-point at which data will be interpolated
 
 
 strainxx_interp = interp1(dic_time,out1(1:num_dic_data,1),sampling_time,'spline');
 strainyy_interp = interp1(dic_time,out1(1:num_dic_data,2),sampling_time,'spline');
+%until this point, DIC strain data have been filtered and sampled at
+%intended sampling time (sampling_time). The same sampling time will be
+%used to interpolate stress data as below.
 
-figure
-plot(dic_time,out1(1:num_dic_data,1),'o',sampling_time,strainxx_interp,':.');
-title('(Default) Linear Interpolation');
+subplot(3,2,1)
+plot(dic_time,out1(1:num_dic_data,1),'o',sampling_time,strainxx_interp,':.'); hold on;
+plot(dic_time,out1(1:num_dic_data,2),'o',sampling_time,strainyy_interp,':.');
+title('Spline interpolation of DIC \epsilon_{xx} and \epsilon_{yy}');
+xlabel('\bf{Time (s)}', 'FontSize', 14);
+ylabel('\bf{\epsilon_{xx} and \epsilon_{yy} (%)}', 'FontSize', 14);
+
+subplot(3,2,3)
+plot(dic_time,out1(1:num_dic_data,1),'o',sampling_time,strainxx_interp,':.'); hold on;
+plot(dic_time,out1(1:num_dic_data,2),'o',sampling_time,strainyy_interp,':.');
+title('Spline interpolation of DIC \epsilon_{xx} and \epsilon_{yy}');
+xlabel('\bf{Time (s)}', 'FontSize', 14);
+ylabel('\bf{\epsilon_{xx} and \epsilon_{yy} (%)}', 'FontSize', 14);
+axis([0 8 -0.01 0.01])
+
+%this code below read excel/csv file from Instron machine.
+%the data is read by readmyexcel.m file and filtered with Savitzky-Golay
+%filter. Once filtered, the data is resampled/interpolated at the same
+%sampling time as the DIC data.
 
 
-figure
-vq1 = interp1(x,v,xq, 'spline');
-plot(x,v,'o',xq,vq1,':.');
-xlim([0 2*pi]);
-title('(Default) Linear Interpolation');
-
-figure;
-plot(init1(:,2),init1(:,3),'*');
-hold on;
-
-plot(out1(:,2),out1(:,3),'-');
-xlabel('\bf{\epsilon_{xx} (%)}', 'FontSize', 14);
-ylabel('\bf{\epsilon_{yy} (%)}', 'FontSize', 14);
+[init2, out2] = readmyexcel(strcat(filename,stressformat)); %STRESS
 
 %second format - stress
-figure;
-plot(init2(:,1),init2(:,2),'*');
-hold on;
-plot(out2(:,1),out2(:,2),'-');
+sigmayy_interp = interp1(out2(:,1),out2(:,5),sampling_time,'spline');
+%until this point, DIC strain data have been filtered and sampled at
+%intended sampling time (sampling_time). The same sampling time will be
+%used to interpolate stress data as below.
+
+
+subplot(3,2,2)
+plot(out2(:,1),out2(:,5),'o',sampling_time,sigmayy_interp,':.');
+title('Spline interpolation of Instron \sigma_{yy}');
 xlabel('\bf{Time (s)}', 'FontSize', 14);
 ylabel('\bf{Axial stress \sigma} (MPa)', 'FontSize', 14);
 
+subplot(3,2,4)
+plot(out2(:,1),out2(:,5),'o',sampling_time,sigmayy_interp,':.');
+title('Spline interpolation of Instron \sigma_{yy}');
+xlabel('\bf{Time (s)}', 'FontSize', 14);
+ylabel('\bf{Axial stress \sigma} (MPa)', 'FontSize', 14);
+axis([-0.5 1 -0.5 1])
 
+FINData = transpose([sampling_time; strainxx_interp; strainyy_interp; sigmayy_interp]); 
 
+x0=700;
+y0=100;
+width=800;
+height=600;
+set(gcf,'units','points','position',[x0,y0,width,height])
+
+col_header = {'Time (s)', 'StrainXX (%)', 'StrainYY (%)', 'StressYY (MPa)'}; %Row cell array (for column labels)
+xlswrite(strcat(filename,'_synced.xlsx'),FINData,'Sheet1','A2');     %Write data
+xlswrite(strcat(filename,'_synced.xlsx'),col_header,'Sheet1','A1');     %Write column header
