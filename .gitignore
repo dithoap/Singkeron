@@ -30,6 +30,9 @@ bld/
 [Bb]in/
 [Oo]bj/
 [Ll]og/
+BY_DIC_CSV/
+BY_dimension/
+SingkeronData/
 
 #abaqus
 *.rpy
